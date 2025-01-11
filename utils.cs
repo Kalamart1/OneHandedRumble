@@ -1,10 +1,19 @@
 using RumbleModdingAPI;
 using UnityEngine;
+using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.Utilities;
+using MelonLoader;
+using System.Collections.Generic;
 
 namespace OneHandedRumble
 {
     public class Utils
     {
+        public static void Log(string msg)
+        {
+            //MyMod.Log(msg);
+            MelonLogger.Msg(msg);
+        }
 
         //variables
         private static bool initialized = false;
@@ -12,6 +21,17 @@ namespace OneHandedRumble
         private static Transform chest = null;
         public static GameObject leftHand = null;
         public static GameObject rightHand = null;
+
+        public static InputAction leftMeasureAction = null;
+        public static InputAction rightMeasureAction = null;
+        public static InputAction muteAction = null;
+        public static InputAction talkAction = null;
+        public static InputAction walkAction = null;
+        public static InputAction turnAction = null;
+
+        public static List<ReadOnlyArray<InputBinding>> measureButtons = null;
+        public static List<ReadOnlyArray<InputBinding>> pushToTalkButtons = null;
+        public static List<ReadOnlyArray<InputBinding>> joysticks = null;
 
         public static System.Exception uninitException = new System.Exception("You must first call Utils.Initialize before calling the methods");
 
@@ -55,6 +75,21 @@ namespace OneHandedRumble
             }
             chest = new GameObject("ModifiedHeadset").transform;
             chest.SetParent(headset.parent);
+
+            Il2CppRUMBLE.Input.InputManager inputManager = Il2CppRUMBLE.Input.InputManager.instance;
+            InputActionAsset mapAsset = inputManager.xrInputActionsMapAsset;
+
+            leftMeasureAction = GetAction(inputManager, true, "Measure");
+            rightMeasureAction = GetAction(inputManager, false, "Measure");
+            muteAction = GetAction(inputManager, true, "Mute");
+            talkAction = GetAction(inputManager, false, "PushToTalk");
+            walkAction = GetAction(inputManager, true, "Walk");
+            turnAction = GetAction(inputManager, false, "Turn");
+
+            measureButtons = new List<ReadOnlyArray<InputBinding>> { Utils.leftMeasureAction.bindings.ToArray(), Utils.rightMeasureAction.bindings.ToArray() };
+            pushToTalkButtons = new List<ReadOnlyArray<InputBinding>> { Utils.muteAction.bindings.ToArray(), Utils.talkAction.bindings.ToArray() };
+            joysticks = new List<ReadOnlyArray<InputBinding>> { Utils.walkAction.bindings.ToArray(), Utils.turnAction.bindings.ToArray() };
+
             initialized = true;
         }
 
@@ -155,6 +190,34 @@ namespace OneHandedRumble
                 throw uninitException;
             }
             return chest.rotation * localRotation;
+        }
+
+        public static InputAction GetAction(Il2CppRUMBLE.Input.InputManager inputManager, bool isLeft, string name)
+        {
+            Il2CppRUMBLE.Input.InputManager.Hand hand = isLeft ? Il2CppRUMBLE.Input.InputManager.Hand.Left : Il2CppRUMBLE.Input.InputManager.Hand.Right;
+            InputActionMap actionMap = inputManager.GetActionMap(hand);
+            foreach (var inputAction in actionMap.actions)
+            {
+                if (name == inputAction.name)
+                {
+                    return inputAction;
+                }
+            }
+            return null;
+        }
+
+        public static void replaceBindings(InputAction action, ReadOnlyArray<InputBinding> newBindings)
+        {
+            int n = action.bindings.m_Length;
+            for (int i = 0; i < n; i++)
+            {
+                action.ChangeBinding(0).Erase();
+            }
+            foreach (var binding in newBindings)
+            {
+                //Log($"Adding {binding.m_Path} to {action.name}");
+                action.AddBinding(binding.m_Path);
+            }
         }
     }
 }
