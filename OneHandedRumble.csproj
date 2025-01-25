@@ -68,6 +68,9 @@
     <Reference Include="RumbleModdingAPI">
       <HintPath>Z:\RUMBLE\RUMBLE_install\Mods\RumbleModdingAPI.dll</HintPath>
     </Reference>
+    <Reference Include="ModUI">
+      <HintPath>Z:\RUMBLE\RUMBLE_install\Mods\ModUI.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>

@@ -56,7 +56,7 @@ namespace OneHandedRumble
          */
         public static void Initialize(bool isLoader)
         {
-            initialized = false;
+            //initialized = false;
             if (isLoader)
             {
                 // in the loader scene, there is no player controller yet
@@ -76,21 +76,26 @@ namespace OneHandedRumble
             chest = new GameObject("ModifiedHeadset").transform;
             chest.SetParent(headset.parent);
 
-            Il2CppRUMBLE.Input.InputManager inputManager = Il2CppRUMBLE.Input.InputManager.instance;
-            InputActionAsset mapAsset = inputManager.xrInputActionsMapAsset;
+            if (!initialized)
+            {
 
-            leftMeasureAction = GetAction(inputManager, true, "Measure");
-            rightMeasureAction = GetAction(inputManager, false, "Measure");
-            muteAction = GetAction(inputManager, true, "Mute");
-            talkAction = GetAction(inputManager, false, "PushToTalk");
-            walkAction = GetAction(inputManager, true, "Walk");
-            turnAction = GetAction(inputManager, false, "Turn");
+                Il2CppRUMBLE.Input.InputManager inputManager = Il2CppRUMBLE.Input.InputManager.instance;
+                InputActionAsset mapAsset = inputManager.xrInputActionsMapAsset;
 
-            measureButtons = new List<ReadOnlyArray<InputBinding>> { Utils.leftMeasureAction.bindings.ToArray(), Utils.rightMeasureAction.bindings.ToArray() };
-            pushToTalkButtons = new List<ReadOnlyArray<InputBinding>> { Utils.muteAction.bindings.ToArray(), Utils.talkAction.bindings.ToArray() };
-            joysticks = new List<ReadOnlyArray<InputBinding>> { Utils.walkAction.bindings.ToArray(), Utils.turnAction.bindings.ToArray() };
+                leftMeasureAction = GetAction(inputManager, true, "Measure");
+                rightMeasureAction = GetAction(inputManager, false, "Measure");
+                muteAction = GetAction(inputManager, true, "Mute");
+                talkAction = GetAction(inputManager, false, "PushToTalk");
+                walkAction = GetAction(inputManager, true, "Walk");
+                turnAction = GetAction(inputManager, false, "Turn");
 
-            initialized = true;
+                measureButtons = new List<ReadOnlyArray<InputBinding>> { Utils.leftMeasureAction.bindings.ToArray(), Utils.rightMeasureAction.bindings.ToArray() };
+                pushToTalkButtons = new List<ReadOnlyArray<InputBinding>> { Utils.muteAction.bindings.ToArray(), Utils.talkAction.bindings.ToArray() };
+                joysticks = new List<ReadOnlyArray<InputBinding>> { Utils.walkAction.bindings.ToArray(), Utils.turnAction.bindings.ToArray() };
+
+                initialized = true;
+            }
+
         }
 
         /**
@@ -215,7 +220,6 @@ namespace OneHandedRumble
             }
             foreach (var binding in newBindings)
             {
-                //Log($"Adding {binding.m_Path} to {action.name}");
                 action.AddBinding(binding.m_Path);
             }
         }

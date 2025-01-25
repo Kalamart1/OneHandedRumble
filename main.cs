@@ -1,5 +1,6 @@
 ﻿using MelonLoader;
 using RumbleModdingAPI;
+using RumbleModUI;
 using UnityEngine;
 using UnityEngine.InputSystem.XR;
 using Il2CppRUMBLE.Players.BootLoader;
@@ -26,11 +27,14 @@ namespace OneHandedRumble
         }
 
         // variables
+        Mod Mod = new Mod();
         private static bool initialized = false;
         private static bool modInitialized = false;
         private static bool oneHandedMode = false;
         private static bool tracklessMode = false;
         public bool[] status = { true, true };
+        bool useMute = false;
+        bool useTurn = false;
 
         // current left/right sides for each action
         int i_real = 0; // which side is the active controller (in one-handed mode)
@@ -50,11 +54,6 @@ namespace OneHandedRumble
         private readonly Il2CppRUMBLE.Input.InputManager.Hand RIGHT_HAND = Il2CppRUMBLE.Input.InputManager.Hand.Right;
         private readonly string[] side = { "left", "right" };
 
-        // TODO use ModUI settings for the initialization instead
-        private bool[] initStatus = { false, true }; // left hand disabled by default
-        private bool useMute = true;
-        private bool useTurn = false;
-
         /**
          * <summary>
          * Called when the mod is loaded into the game
@@ -62,6 +61,49 @@ namespace OneHandedRumble
          */
         public override void OnLateInitializeMelon()
         {
+            UI.instance.UI_Initialized += OnUIInit;
+        }
+
+        /**
+         * <summary>
+         * Specify the different options that will be used in the ModUI settings
+         * </summary>
+         */
+        public void SetUIOptions()
+        {
+            Mod.ModName = BuildInfo.ModName;
+            Mod.ModVersion = BuildInfo.ModVersion;
+            Mod.SetFolder("OneHandedRumble");
+            Mod.AddToList("Left enabled", true, 0, "Enable tracking for the left controller.", new Tags { });
+            Mod.AddToList("Right enabled", true, 0, "Enable tracking for the right controller.", new Tags { });
+            Mod.AddToList("Use Mute on enabled controller", false, 0, "The default action for the primary button is push-to-talk, enable this to switch it with mute. " +
+                "The other action is still available on the disabled controller." +
+                "\n\nThis option does nothing when both controllers are enabled.", new Tags { });
+            Mod.AddToList("Use Turn on enabled controller", false, 0, "The default action for the joystick is walk, enable this to switch it with turn." +
+                "The other action is still available on the disabled controller." +
+                "\n\nThis option does nothing when both controllers are enabled.", new Tags { });
+            Mod.GetFromFile();
+        }
+
+        /**
+         * <summary>
+         * Called when the actual ModUI window is initialized
+         * </summary>
+         */
+        public void OnUIInit()
+        {
+            Mod.ModSaved += OnUISaved;
+            UI.instance.AddMod(Mod);
+        }
+
+        /**
+         * <summary>
+         * Called when the user saves a configuration in ModUI
+         * </summary>
+         */
+        public void OnUISaved()
+        {
+            UpdateMode();
         }
 
         /**
@@ -75,6 +117,7 @@ namespace OneHandedRumble
             Log($"Detected scene '{sceneName}'");
             if (sceneName == "Loader")
             {
+                SetUIOptions();
                 InitScene(true);
             }
         }
@@ -97,7 +140,7 @@ namespace OneHandedRumble
         public void InitScene(bool isLoader)
         {
             Utils.Initialize(isLoader);
-            UpdateMode(initStatus);
+            UpdateMode();
 
             if (isLoader)
             {
@@ -114,8 +157,12 @@ namespace OneHandedRumble
          * Toggles both controllers as well as their bindings, and logs the notable changes (if any)
          * </summary>
          */
-        private void UpdateMode(bool[] newStatus)
+        private void UpdateMode()
         {
+            bool[] newStatus = { (bool)Mod.Settings[0].SavedValue, (bool)Mod.Settings[1].SavedValue };
+            useMute = (bool)Mod.Settings[2].SavedValue;
+            useTurn = (bool)Mod.Settings[3].SavedValue;
+
             bool needLogging = (!modInitialized) || // if we're at the first mod init
                                 (newStatus[0] != status[0] || newStatus[1] != status[1]); // or the status of the hands changed
             SetControllerStatus(true, newStatus[0]);
@@ -157,8 +204,6 @@ namespace OneHandedRumble
 
             oneHandedMode = (status[0] != status[1]); // is one hand mirroring the other
             tracklessMode = (!oneHandedMode && !enabled);
-            //bool needLogging = (!modInitialized && !isLeft) || // if we're at the first mod init
-            //                    (initialized && statusChanged); // or the status of the hand changed
 
             if (oneHandedMode)
             {
@@ -168,9 +213,7 @@ namespace OneHandedRumble
                 virtualHandId = status[0] ? RIGHT_HAND : LEFT_HAND;
                 i_real = status[0] ? 0 : 1;
                 i_virtual = 1 - i_real;
-                // TODO change input bindings too, so that the game is 100% playable with one controller
             }
-            //return needLogging;
         }
 
         /**
