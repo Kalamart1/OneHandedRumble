@@ -56,7 +56,6 @@ namespace OneHandedRumble
          */
         public static void Initialize(bool isLoader)
         {
-            //initialized = false;
             if (isLoader)
             {
                 // in the loader scene, there is no player controller yet
@@ -78,9 +77,7 @@ namespace OneHandedRumble
 
             if (!initialized)
             {
-
                 Il2CppRUMBLE.Input.InputManager inputManager = Il2CppRUMBLE.Input.InputManager.instance;
-                InputActionAsset mapAsset = inputManager.xrInputActionsMapAsset;
 
                 leftMeasureAction = GetAction(inputManager, true, "Measure");
                 rightMeasureAction = GetAction(inputManager, false, "Measure");
@@ -220,7 +217,7 @@ namespace OneHandedRumble
             }
             foreach (var binding in newBindings)
             {
-                action.AddBinding(binding.m_Path);
+                action.AddBinding(binding.path, interactions: binding.interactions, processors: binding.processors, groups: binding.groups);
             }
         }
     }
