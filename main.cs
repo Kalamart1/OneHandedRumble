@@ -159,7 +159,14 @@ namespace OneHandedRumble
          */
         private void UpdateMode()
         {
-            bool[] newStatus = { (bool)Mod.Settings[0].SavedValue, (bool)Mod.Settings[1].SavedValue };
+            bool[] newStatus = { true, true };
+            bool isMatch = (Calls.Matchmaking.getMatchmakingTypeAsInt() >= 0);
+            if (!isMatch)
+            {
+                // outside of a match, get the ModUI config
+                newStatus[0] = (bool)Mod.Settings[0].SavedValue;
+                newStatus[1] = (bool)Mod.Settings[1].SavedValue;
+            }
             useMute = (bool)Mod.Settings[2].SavedValue;
             useTurn = (bool)Mod.Settings[3].SavedValue;
 
@@ -171,6 +178,10 @@ namespace OneHandedRumble
             // If a mode change notification message is needed in the logs
             if (needLogging)
             {
+                if (isMatch)
+                {
+                    Log($"Mod disabled because a match has been started");
+                }
                 string logMsg = "";
                 if (oneHandedMode)
                 {
