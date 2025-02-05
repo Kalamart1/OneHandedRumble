@@ -7,6 +7,7 @@ using Il2CppRUMBLE.Players.BootLoader;
 using HarmonyLib;
 using System;
 using Il2CppRUMBLE.Players.Subsystems;
+using Il2CppRUMBLE.Players;
 
 namespace OneHandedRumble
 {
@@ -28,6 +29,8 @@ namespace OneHandedRumble
 
         // variables
         Mod Mod = new Mod();
+
+        private static bool needInit = false;
         private static bool initialized = false;
         private static bool modInitialized = false;
         private static bool oneHandedMode = false;
@@ -113,23 +116,12 @@ namespace OneHandedRumble
          */
         public override void OnSceneWasLoaded(int buildIndex, string sceneName)
         {
-            initialized = false;
             Log($"Detected scene '{sceneName}'");
             if (sceneName == "Loader")
             {
                 SetUIOptions();
                 InitScene(true);
             }
-        }
-
-        /**
-         * <summary>
-         * Called when the map is completely loaded, and RMAPI is completely initialized
-         * </summary>
-         */
-        public void OnMapInitialized()
-        {
-            InitScene(false);
         }
 
         /**
@@ -144,12 +136,10 @@ namespace OneHandedRumble
 
             if (isLoader)
             {
-                // RMAPI is not initialized yet when OnSceneWasLoaded is called, so we add a callback
-                Calls.onMapInitialized += OnMapInitialized;
-
                 modInitialized = true;
             }
             initialized = true;
+            Log($"Initialized controls");
         }
 
         /**
@@ -234,26 +224,39 @@ namespace OneHandedRumble
          */
         public override void OnFixedUpdate()
         {
-            if (initialized)
+            if (needInit) // if the local player was initialized
             {
-                if (oneHandedMode)
-                {
-                    if ((Calls.ControllerMap.LeftController.GetTrigger() > 0.3) ||
-                        (Calls.ControllerMap.RightController.GetTrigger() > 0.3))
-                    {
-                        // if trigger is pulled, freeze the virtual hand in place (compared to the chest)
-                        Utils.FreezeObject(virtualHand);
-                    }
-                    else
-                    {
-                        // if not, mirror the real hand's position
-                        Utils.MirrorObject(realHand, virtualHand);
-                    }
-                }
+                InitScene(false);
+                needInit = false;
+            }
 
-                // ensure that the pose drivers are properly enabled/disabled
-                Utils.leftHand.GetComponent<TrackedPoseDriver>().enabled = status[0];
-                Utils.rightHand.GetComponent<TrackedPoseDriver>().enabled = status[1];
+            try
+            {
+                if (initialized)
+                {
+                    if (oneHandedMode)
+                    {
+                        if ((Calls.ControllerMap.LeftController.GetTrigger() > 0.3) ||
+                            (Calls.ControllerMap.RightController.GetTrigger() > 0.3))
+                        {
+                            // if trigger is pulled, freeze the virtual hand in place (compared to the chest)
+                            Utils.FreezeObject(virtualHand);
+                        }
+                        else
+                        {
+                            // if not, mirror the real hand's position
+                            Utils.MirrorObject(realHand, virtualHand);
+                        }
+                    }
+
+                    // ensure that the pose drivers are properly enabled/disabled
+                    Utils.leftHand.GetComponent<TrackedPoseDriver>().enabled = status[0];
+                    Utils.rightHand.GetComponent<TrackedPoseDriver>().enabled = status[1];
+                }
+            }
+            catch(System.Exception)
+            {
+                initialized = false;
             }
         }
 
@@ -370,6 +373,23 @@ namespace OneHandedRumble
                     return false; // prevent the original method from running
                 }
                 return true;
+            }
+        }
+
+        /**
+         * <summary>
+         * Harmony patch that is called when the local player is initialized
+         * </summary>
+         */
+        [HarmonyPatch(typeof(PlayerController), "Initialize", new System.Type[] { typeof(Player) })]
+        public static class playerspawn
+        {
+            private static void Postfix(ref PlayerController __instance, ref Player player)
+            {
+                if (Calls.Players.GetLocalPlayer() == player)
+                {
+                    needInit = true;
+                }
             }
         }
 
