@@ -38,7 +38,8 @@ namespace OneHandedRumble
         private static bool modInitialized = false;
         private static bool oneHandedMode = false;
         private static bool tracklessMode = false;
-        public bool[] status = { true, true };
+        private static bool keepHaptics = false;
+        public static bool[] status = { true, true };
         bool useMute = false;
         bool useTurn = false;
 
@@ -93,12 +94,14 @@ namespace OneHandedRumble
             Mod.SetFolder("OneHandedRumble");
             Mod.AddToList("Left enabled", true, 0, "Enable tracking for the left controller.", new Tags { });
             Mod.AddToList("Right enabled", true, 0, "Enable tracking for the right controller.", new Tags { });
-            Mod.AddToList("Use Mute on enabled controller", false, 0, "The default action for the primary button is push-to-talk, enable this to switch it with mute. " +
+            Mod.AddToList("Use Mute on enabled controller", false, 0, "The default action for the primary button is push-to-talk, enable this to switch it with mute." +
                 "The other action is still available on the disabled controller." +
                 "\n\nThis option does nothing when both controllers are enabled.", new Tags { });
             Mod.AddToList("Use Turn on enabled controller", false, 0, "The default action for the joystick is walk, enable this to switch it with turn." +
                 "The other action is still available on the disabled controller." +
                 "\n\nThis option does nothing when both controllers are enabled.", new Tags { });
+            Mod.AddToList("Keep haptics", false, 0, "Enable haptics on the disabled controller." +
+                "\n\nSet to false if you keep the disabled controller in hand and want it to get all haptic signals.", new Tags { });
             Mod.GetFromFile();
         }
 
@@ -190,6 +193,7 @@ namespace OneHandedRumble
             }
             useMute = (bool)Mod.Settings[2].SavedValue;
             useTurn = (bool)Mod.Settings[3].SavedValue;
+            keepHaptics = (bool)Mod.Settings[4].SavedValue;
 
             bool needLogging = (!modInitialized) || // if we're at the first mod init
                                 (newStatus[0] != status[0] || newStatus[1] != status[1]); // or the status of the hands changed
@@ -547,6 +551,46 @@ namespace OneHandedRumble
                 {
                     Utils.SetMeasurement();
                 }
+            }
+        }
+
+        /**
+         * <summary>
+         * Harmony patch that disables haptics on the disabled hand when interacting with buttons/switches
+         * </summary>
+         */
+        [HarmonyPatch(typeof(InteractionHapticsSignal), "Apply", new Type[] { })]
+        public static class StopApplyInteraction
+        {
+            private static bool Prefix(ref InteractionHapticsSignal __instance)
+            {
+                if (oneHandedMode && !keepHaptics)
+                {
+                    if (__instance.targetHand.handType == virtualHandId)
+                    {
+                        return false;
+                    }
+                }
+                return true;
+            }
+        }
+
+        /**
+         * <summary>
+         * Harmony patch that disables haptics on the disabled hand when doing moves and getting hit
+         * </summary>
+         */
+        [HarmonyPatch(typeof(PlayerHaptics), "AddHapticsSignal", new Type[] { typeof(float), typeof(float), typeof(float) })]
+        public static class StopAddHapticsSignal
+        {
+            private static bool Prefix(ref PlayerHaptics __instance, ref float leftIntensity, ref float rightIntensity, float screenShakeIntensity)
+            {
+                if (oneHandedMode && !keepHaptics)
+                {
+                    if (!status[0]) leftIntensity = 0;
+                    if (!status[1]) rightIntensity = 0;
+                }
+                return true;
             }
         }
     }
