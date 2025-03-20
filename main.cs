@@ -8,6 +8,8 @@ using HarmonyLib;
 using System;
 using Il2CppRUMBLE.Players.Subsystems;
 using Il2CppRUMBLE.Players;
+using Il2CppPhoton.Pun;
+using System.Collections;
 
 namespace OneHandedRumble
 {
@@ -274,8 +276,8 @@ namespace OneHandedRumble
 
             if (!modInitialized || i_measure1 != i_measure1_old || i_measure2 != i_measure2_old)
             {
-                Utils.replaceBindings(Utils.leftMeasureAction, Utils.measureButtons[i_measure1]);
-                Utils.replaceBindings(Utils.rightMeasureAction, Utils.measureButtons[i_measure2]);
+                Utils.ReplaceBindings(Utils.leftMeasureAction, Utils.measureButtons[i_measure1]);
+                Utils.ReplaceBindings(Utils.rightMeasureAction, Utils.measureButtons[i_measure2]);
 
                 if (oneHandedMode)
                 {
@@ -300,8 +302,8 @@ namespace OneHandedRumble
 
             if (!modInitialized || i_walk != i_walk_old)
             {
-                Utils.replaceBindings(Utils.walkAction, Utils.joysticks[i_walk]);
-                Utils.replaceBindings(Utils.turnAction, Utils.joysticks[1 - i_walk]);
+                Utils.ReplaceBindings(Utils.walkAction, Utils.joysticks[i_walk]);
+                Utils.ReplaceBindings(Utils.turnAction, Utils.joysticks[1 - i_walk]);
 
                 Log($"Walk with the {side[i_walk]} controller");
                 Log($"Turn with the {side[1 - i_walk]} controller");
@@ -320,8 +322,8 @@ namespace OneHandedRumble
 
             if (!modInitialized || i_talk != i_talk_old)
             {
-                Utils.replaceBindings(Utils.talkAction, Utils.pushToTalkButtons[i_talk]);
-                Utils.replaceBindings(Utils.muteAction, Utils.pushToTalkButtons[1 - i_talk]);
+                Utils.ReplaceBindings(Utils.talkAction, Utils.pushToTalkButtons[i_talk]);
+                Utils.ReplaceBindings(Utils.muteAction, Utils.pushToTalkButtons[1 - i_talk]);
 
                 Log($"Push To Talk with the {side[i_talk]} controller");
                 Log($"Mute with the {side[1 - i_talk]} controller");
@@ -393,5 +395,70 @@ namespace OneHandedRumble
             }
         }
 
+        /**
+         * <summary>
+         * Harmony patch that prevents measurement failure in the loader
+         * </summary>
+         */
+        [HarmonyPatch(typeof(BootLoaderMeasurementSystem), "OnMeasurementFailed", new Type[] { })]
+        public static class CheckOnMeasurementFailed
+        {
+            private static bool Prefix(ref BootLoaderMeasurementSystem __instance)
+            {
+                if (oneHandedMode) //prevent failure in one-handed mode
+                {
+                    bool success = Utils.SetMeasurement();
+                    if (success)
+                    {
+                        AudioSource onMeasureSFX = __instance.onMeasureSFX;
+                        onMeasureSFX.Play();
+                        MelonCoroutines.Start(LoadGym());
+                        return false;
+                    }
+                }
+                return true;
+            }
+        }
+
+        /**
+         * <summary>
+         * Loads the player into the gym from the loader scene.
+         * Since the loading stops all SFX, includes a waiting time of 0.5 seconds.
+         * </summary>
+         */
+        private static IEnumerator LoadGym ()
+        {
+            // wait 0.5 seconds in order to let the SFX finish playing
+            yield return new WaitForSeconds(0.5f);
+            // load into the gym
+            Il2CppRUMBLE.Managers.SceneManager.instance.PerformStartupGymLoad();
+            yield break;
+        }
+
+        /**
+         * <summary>
+         * Harmony patch that replaces the measurement function outside of the loader scene
+         * </summary>
+         */
+        [HarmonyPatch(typeof(PlayerScaling), "OnMeasureTimerEnd", new Type[] { })]
+        public static class CheckOnMeasureTimerEnd
+        {
+            private static bool Prefix(ref PlayerScaling __instance)
+            {
+                if (oneHandedMode) //prevent failure in one-handed mode
+                {
+                    __instance.onMeasureFailedAudioCall = __instance.onMeasureAudioCall;
+                    return true;
+                }
+                return true;
+            }
+            private static void Postfix(ref PlayerScaling __instance)
+            {
+                if (oneHandedMode) //prevent failure in one-handed mode
+                {
+                    Utils.SetMeasurement();
+                }
+            }
+        }
     }
 }

@@ -4,6 +4,7 @@ using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Utilities;
 using MelonLoader;
 using System.Collections.Generic;
+using Il2CppRUMBLE.Players.Scaling;
 
 namespace OneHandedRumble
 {
@@ -19,6 +20,7 @@ namespace OneHandedRumble
         private static bool initialized = false;
         private static Transform headset = null;
         private static Transform chest = null;
+        private static Transform root = null;
         public static GameObject leftHand = null;
         public static GameObject rightHand = null;
 
@@ -42,11 +44,11 @@ namespace OneHandedRumble
          */
         private static void UpdateChestTransform()
         {
-            Vector3 position = headset.position;
-            float yaw = headset.rotation.eulerAngles.y;
+            Vector3 position = headset.localPosition;
+            float yaw = headset.localRotation.eulerAngles.y;
             // Remove every rotation except for yaw
             Vector3 rotationEuler = new Vector3(0, yaw, 0);
-            chest.SetPositionAndRotation(position, Quaternion.Euler(rotationEuler));
+            chest.SetLocalPositionAndRotation(position, Quaternion.Euler(rotationEuler));
         }
 
         /**
@@ -56,6 +58,7 @@ namespace OneHandedRumble
          */
         public static void Initialize(bool isLoader)
         {
+            root = new GameObject("Root").transform;
             if (isLoader)
             {
                 // in the loader scene, there is no player controller yet
@@ -63,6 +66,8 @@ namespace OneHandedRumble
                 headset = bootLoaderPlayerTr.GetChild(1).GetChild(0);
                 leftHand = bootLoaderPlayerTr.GetChild(2).gameObject;
                 rightHand = bootLoaderPlayerTr.GetChild(3).gameObject;
+                root.SetParent(bootLoaderPlayerTr);
+                root.SetLocalPositionAndRotation(new Vector3(0, 0.1f, 0), Quaternion.identity);
             }
             else
             {
@@ -71,8 +76,10 @@ namespace OneHandedRumble
                 headset = playerTr.GetChild(0).GetChild(0);
                 leftHand = playerTr.GetChild(1).gameObject;
                 rightHand = playerTr.GetChild(2).gameObject;
+                root.SetParent(playerTr.GetChild(3));
+                root.SetLocalPositionAndRotation(new Vector3(0, -0.045f, 0), Quaternion.identity);
             }
-            chest = new GameObject("ModifiedHeadset").transform;
+            chest = new GameObject("Chest").transform;
             chest.SetParent(headset.parent);
 
             if (!initialized)
@@ -208,7 +215,7 @@ namespace OneHandedRumble
             return null;
         }
 
-        public static void replaceBindings(InputAction action, ReadOnlyArray<InputBinding> newBindings)
+        public static void ReplaceBindings(InputAction action, ReadOnlyArray<InputBinding> newBindings)
         {
             int n = action.bindings.m_Length;
             for (int i = 0; i < n; i++)
@@ -219,6 +226,19 @@ namespace OneHandedRumble
             {
                 action.AddBinding(binding.path, interactions: binding.interactions, processors: binding.processors, groups: binding.groups);
             }
+        }
+
+        public static bool SetMeasurement()
+        {
+            UpdateChestTransform();
+            Il2CppRUMBLE.Managers.PlayerManager playerManager = Il2CppRUMBLE.Managers.PlayerManager.instance;
+            PlayerMeasurement measurement = PlayerMeasurement.Create(Utils.headset, Utils.leftHand.transform, Utils.rightHand.transform, Utils.root, true);
+            if (playerManager.localPlayer!=null) // check that the player is initialized
+            {
+                playerManager.localPlayer.Data.SetMeasurement(measurement, true);
+                return true;
+            }
+            return false;
         }
     }
 }
