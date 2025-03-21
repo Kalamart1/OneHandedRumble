@@ -10,6 +10,7 @@ using Il2CppRUMBLE.Players.Subsystems;
 using Il2CppRUMBLE.Players;
 using Il2CppPhoton.Pun;
 using System.Collections;
+using Il2CppTMPro;
 
 namespace OneHandedRumble
 {
@@ -54,10 +55,21 @@ namespace OneHandedRumble
         private static Il2CppRUMBLE.Input.InputManager.Hand virtualHandId;
         private static Il2CppRUMBLE.Input.InputManager.Hand realHandId;
 
+        private static bool isLoader;
+        private static bool isGym;
+        private TextMeshProUGUI instructions;
+        private TextMeshProUGUI rightButtonText;
+        private TextMeshProUGUI leftButtonText;
+        private GameObject rightHandText;
+        private GameObject leftHandText;
+        private string leftButtonName;
+        private string rightButtonName;
+
         //constants
         private readonly Il2CppRUMBLE.Input.InputManager.Hand LEFT_HAND = Il2CppRUMBLE.Input.InputManager.Hand.Left;
         private readonly Il2CppRUMBLE.Input.InputManager.Hand RIGHT_HAND = Il2CppRUMBLE.Input.InputManager.Hand.Right;
         private readonly string[] side = { "left", "right" };
+
 
         /**
          * <summary>
@@ -119,10 +131,12 @@ namespace OneHandedRumble
         public override void OnSceneWasLoaded(int buildIndex, string sceneName)
         {
             Log($"Detected scene '{sceneName}'");
-            if (sceneName == "Loader")
+            isGym = (sceneName == "Gym");
+            isLoader = (sceneName == "Loader");
+            if (isLoader)
             {
                 SetUIOptions();
-                InitScene(true);
+                InitScene();
             }
         }
 
@@ -131,9 +145,24 @@ namespace OneHandedRumble
          * Initializes the objects and managers that the mod is using.
          * </summary>
          */
-        public void InitScene(bool isLoader)
+        public void InitScene()
         {
             Utils.Initialize(isLoader);
+
+            if (isLoader)
+            {
+                Transform textCanvas = GameObject.Find("________________SCENE_________________/Text/Measuring/TextCanvas").transform;
+                instructions = textCanvas.GetChild(0).GetComponent<TextMeshProUGUI>();
+                rightButtonText = textCanvas.GetChild(2).GetComponent<TextMeshProUGUI>();
+                leftButtonText = textCanvas.GetChild(3).GetComponent<TextMeshProUGUI>();
+                rightHandText = textCanvas.GetChild(4).gameObject;
+                leftHandText = textCanvas.GetChild(5).gameObject;
+            }
+            else if (isGym)
+            {
+                instructions = GameObject.Find("------------TUTORIAL------------/Static tutorials/Measure/Stone rumble man (1)/Text/MeasureTextCanvas/MesureText").GetComponent<TextMeshProUGUI>();
+            }
+
             UpdateMode();
 
             if (isLoader)
@@ -190,8 +219,57 @@ namespace OneHandedRumble
             SetMeasureBindings();
             SetJoystickBindings();
             SetPushToTalkBindings();
+
+            if (isLoader || isGym)
+            {
+                UpdateMeasurementInstructions();
+            }
         }
 
+        /**
+         * <summary>
+         * Updates the text on the tutoral statue that explains how to do the t-pose (in loader and gym only)
+         * </summary>
+         */
+        private void UpdateMeasurementInstructions()
+        {
+            string text;
+            if (isLoader)
+            {
+                leftHandText.active = status[0];
+                rightHandText.active = status[1];
+
+                if (oneHandedMode)
+                {
+                    text = "Assume this POSE, and HOLD this button for TWO SECONDS";
+                }
+                else if (tracklessMode)
+                {
+                    text = "Assume this POSE, and THINK for TWO\u00A0SECONDS whether disabling BOTH controllers was a good idea";
+                    instructions.m_fontSize *= 0.8f;
+                }
+                else
+                {
+                    text = "Assume this POSE, and HOLD these buttons for TWO SECONDS";
+                }
+            }
+            else
+            {
+                if (oneHandedMode)
+                {
+                    text = $"Assume this pose then\nPress and HOLD the {(status[0] ? leftButtonName : rightButtonName)} to MEASURE";
+                }
+                else if (tracklessMode)
+                {
+                    text = "Assume this pose then\nTHINK whether disabling BOTH controllers was a good idea";
+                }
+                else
+                {
+                    text = $"Assume this pose then\nPress and HOLD the {leftButtonName} and {rightButtonName} to MEASURE";
+                }
+            }
+            instructions.SetText(text);
+        }
 
         /**
          * <summary>
@@ -228,7 +306,8 @@ namespace OneHandedRumble
         {
             if (needInit) // if the local player was initialized
             {
-                InitScene(false);
+                isLoader = false;
+                InitScene();
                 needInit = false;
             }
 
@@ -254,6 +333,16 @@ namespace OneHandedRumble
                     // ensure that the pose drivers are properly enabled/disabled
                     Utils.leftHand.GetComponent<TrackedPoseDriver>().enabled = status[0];
                     Utils.rightHand.GetComponent<TrackedPoseDriver>().enabled = status[1];
+
+                    if (isLoader)
+                    {
+                        // update the names of the measurement buttons just in case they changed
+                        leftButtonName = leftButtonText.m_text;
+                        rightButtonName = rightButtonText.m_text;
+                        // hide the button name(s) of the disabled controller(s)
+                        leftButtonText.gameObject.active = status[0];
+                        rightButtonText.gameObject.active = status[1];
+                    }
                 }
             }
             catch(System.Exception)
