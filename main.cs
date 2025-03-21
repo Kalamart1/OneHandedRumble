@@ -303,7 +303,7 @@ namespace OneHandedRumble
 
         /**
          * <summary>
-         * Called every couple frames, used for frequent updates
+         * Called 5à times per second, used for frequent updates
          * </summary>
          */
         public override void OnFixedUpdate()
@@ -315,6 +315,39 @@ namespace OneHandedRumble
                 needInit = false;
             }
 
+            try
+            {
+                if (initialized)
+                {
+                    // ensure that the pose drivers are properly enabled/disabled
+                    Utils.leftHand.GetComponent<TrackedPoseDriver>().enabled = status[0];
+                    Utils.rightHand.GetComponent<TrackedPoseDriver>().enabled = status[1];
+
+                    if (isLoader)
+                    {
+                        // update the names of the measurement buttons just in case they changed
+                        leftButtonName = leftButtonText.m_text;
+                        rightButtonName = rightButtonText.m_text;
+                        // hide the button name(s) of the disabled controller(s)
+                        leftButtonText.gameObject.active = status[0];
+                        rightButtonText.gameObject.active = status[1];
+                    }
+                }
+            }
+            catch(System.Exception)
+            {
+                initialized = false;
+            }
+        }
+
+
+        /**
+         * <summary>
+         * Called on every frame, used for updates that NEED to happen on every frame
+         * </summary>
+         */
+        public override void OnUpdate()
+        {
             try
             {
                 if (initialized)
@@ -333,23 +366,9 @@ namespace OneHandedRumble
                             Utils.MirrorObject(realHand, virtualHand);
                         }
                     }
-
-                    // ensure that the pose drivers are properly enabled/disabled
-                    Utils.leftHand.GetComponent<TrackedPoseDriver>().enabled = status[0];
-                    Utils.rightHand.GetComponent<TrackedPoseDriver>().enabled = status[1];
-
-                    if (isLoader)
-                    {
-                        // update the names of the measurement buttons just in case they changed
-                        leftButtonName = leftButtonText.m_text;
-                        rightButtonName = rightButtonText.m_text;
-                        // hide the button name(s) of the disabled controller(s)
-                        leftButtonText.gameObject.active = status[0];
-                        rightButtonText.gameObject.active = status[1];
-                    }
                 }
             }
-            catch(System.Exception)
+            catch (System.Exception)
             {
                 initialized = false;
             }
