@@ -72,7 +72,7 @@ namespace OneHandedRumble
             else
             {
                 // this works for all post-loader scenes (gym, park, maps)
-                Transform playerTr = Calls.Players.GetPlayerController().gameObject.transform.GetChild(1);
+                Transform playerTr = Calls.Players.GetPlayerController().gameObject.transform.GetChild(2);
                 headset = playerTr.GetChild(0).GetChild(0);
                 leftHand = playerTr.GetChild(1).gameObject;
                 rightHand = playerTr.GetChild(2).gameObject;

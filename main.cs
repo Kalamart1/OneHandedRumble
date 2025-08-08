@@ -163,7 +163,14 @@ namespace OneHandedRumble
             }
             else if (isGym)
             {
-                instructions = GameObject.Find("------------TUTORIAL------------/Static tutorials/Measure/Stone rumble man (1)/Text/MeasureTextCanvas/MesureText").GetComponent<TextMeshProUGUI>();
+                instructions = Calls.GameObjects.Gym.TUTORIAL.Statictutorials
+                    .Measure
+                    .Stonerumbleman1
+                    .Text
+                    .MeasureTextCanvas
+                    .MesureText
+                    .GetGameObject()
+                    .GetComponent<TextMeshProUGUI>();
             }
 
             UpdateMode();
