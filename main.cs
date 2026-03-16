@@ -1,5 +1,5 @@
 ﻿using MelonLoader;
-using RumbleModdingAPI;
+using RumbleModdingAPI.RMAPI;
 using RumbleModUI;
 using UnityEngine;
 using UnityEngine.InputSystem.XR;
@@ -8,7 +8,6 @@ using HarmonyLib;
 using System;
 using Il2CppRUMBLE.Players.Subsystems;
 using Il2CppRUMBLE.Players;
-using Il2CppPhoton.Pun;
 using System.Collections;
 using Il2CppTMPro;
 
@@ -17,7 +16,7 @@ namespace OneHandedRumble
     public static class BuildInfo
     {
         public const string ModName = "OneHandedRumble";
-        public const string ModVersion = "1.0.0";
+        public const string ModVersion = "1.0.2";
         public const string Description = "Accessibility option that allows playing with only one hand";
         public const string Author = "Kalamart";
         public const string Company = "";
@@ -58,9 +57,9 @@ namespace OneHandedRumble
 
         private static bool isLoader;
         private static bool isGym;
-        private TextMeshProUGUI instructions;
-        private TextMeshProUGUI rightButtonText;
-        private TextMeshProUGUI leftButtonText;
+        private TMP_Text instructions;
+        private TMP_Text rightButtonText;
+        private TMP_Text leftButtonText;
         private GameObject rightHandText;
         private GameObject leftHandText;
         private string leftButtonName;
@@ -154,23 +153,20 @@ namespace OneHandedRumble
 
             if (isLoader)
             {
-                Transform textCanvas = GameObject.Find("________________SCENE_________________/Text/Measuring/TextCanvas").transform;
-                instructions = textCanvas.GetChild(0).GetComponent<TextMeshProUGUI>();
-                rightButtonText = textCanvas.GetChild(2).GetComponent<TextMeshProUGUI>();
-                leftButtonText = textCanvas.GetChild(3).GetComponent<TextMeshProUGUI>();
-                rightHandText = textCanvas.GetChild(4).gameObject;
+                Transform textCanvas = GameObject.Find("SCENE/Loader T pose/TextCanvas").transform;
+                instructions = textCanvas.GetChild(7).GetComponent<TMP_Text>();
+                rightButtonText = textCanvas.GetChild(4).GetComponent<TMP_Text>();
+                leftButtonText = textCanvas.GetChild(3).GetComponent<TMP_Text>();
+                rightHandText = textCanvas.GetChild(0).gameObject;
                 leftHandText = textCanvas.GetChild(5).gameObject;
             }
             else if (isGym)
             {
-                instructions = Calls.GameObjects.Gym.TUTORIAL.Statictutorials
+                instructions = GameObjects.Gym.TUTORIAL.Statictutorials
                     .Measure
-                    .Stonerumbleman1
-                    .Text
-                    .MeasureTextCanvas
-                    .MesureText
+                    .MeasureText
                     .GetGameObject()
-                    .GetComponent<TextMeshProUGUI>();
+                    .GetComponent<TMP_Text>();
             }
 
             UpdateMode();

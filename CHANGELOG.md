@@ -1,3 +1,6 @@
+# Version 1.0.2
+- Fixed the mod for 0.5
+
 # Version 1.0.1
 - Fixed the mod for 0.4.2
 

@@ -1,10 +1,11 @@
+using System.Collections.Generic;
+using Il2CppRUMBLE.Players.Scaling;
+using MelonLoader;
 using RumbleModdingAPI;
+using RumbleModdingAPI.RMAPI;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Utilities;
-using MelonLoader;
-using System.Collections.Generic;
-using Il2CppRUMBLE.Players.Scaling;
 
 namespace OneHandedRumble
 {
@@ -72,7 +73,7 @@ namespace OneHandedRumble
             else
             {
                 // this works for all post-loader scenes (gym, park, maps)
-                Transform playerTr = Calls.Players.GetPlayerController().gameObject.transform.GetChild(2);
+                Transform playerTr = Calls.Players.GetLocalPlayerController().gameObject.transform.GetChild(2);
                 headset = playerTr.GetChild(0).GetChild(0);
                 leftHand = playerTr.GetChild(1).gameObject;
                 rightHand = playerTr.GetChild(2).gameObject;
